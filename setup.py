@@ -3,12 +3,12 @@ from setuptools import setup, find_packages
 setup(
     name='classifier',
     version='0.1.0',
-    author='Your Name',
-    author_email='your.email@example.com',
+    author='Bonnie Gachiengu',
+    author_email='bonniegachiengu@gmail.com',
     description='A media management application for metadata collection, file indexing, and content analysis.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/yourusername/classifier',
+    url='https://github.com/bonniegachiengu/classifier',
     packages=find_packages(),
     classifiers=[
         'Programming Language :: Python :: 3',
