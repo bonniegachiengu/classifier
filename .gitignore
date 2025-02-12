@@ -49,5 +49,9 @@ env/
 # Ignore pytest cache
 .pytest_cache/
 
-# Ignore SQLite database file
-classified.db
+# Ignore SQLite3 database file
+*.sqlite3
+.db
+/*.db
+/*.sqlite
+/classifier/classified.db
