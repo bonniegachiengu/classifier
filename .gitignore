@@ -48,3 +48,6 @@ env/
 
 # Ignore pytest cache
 .pytest_cache/
+
+# Ignore SQLite database file
+classified.db
