@@ -20,7 +20,8 @@ classifier
 │   ├── __init__.py
 │   └── generator.py
 ├── requirements.txt
-└── README.md
+├── README.md
+└── setup.py
 ```
 
 ## Findex Package

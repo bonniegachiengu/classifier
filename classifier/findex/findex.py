@@ -60,7 +60,7 @@ def main():
     # extensions = tuple(input("Enter file extensions separated by space: ").split())
 
     # Define directory and extensions
-    directory = 'E:\Films\Media'
+    directory = 'E:\Films\Movies'
     extensions = ('.mp4', '.mkv', '.avi')
 
     # Initialize FindEx object

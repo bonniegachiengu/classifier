@@ -1,7 +1,5 @@
-requests
-beautifulsoup4
-pandas
-sqlalchemy
-openai
-python-dotenv
 setuptools
+sqlite3
+os
+pathlib
+pandas

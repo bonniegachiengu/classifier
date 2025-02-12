@@ -62,9 +62,9 @@ class DetailsExtractor:
         c.execute('''CREATE TABLE IF NOT EXISTS filedetails
                      (file_id INTEGER PRIMARY KEY, title TEXT, year INTEGER, resolution TEXT, codec TEXT)''')
 
-        # Insert details into the details table
+        # Insert or replace details into the details table
         for file_id, details in self.details.items():
-            c.execute("INSERT INTO filedetails VALUES (?, ?, ?, ?, ?)", (file_id, details['title'], details['year'], details['resolution'], details['codec']))
+            c.execute("INSERT OR REPLACE INTO filedetails VALUES (?, ?, ?, ?, ?)", (file_id, details['title'], details['year'], details['resolution'], details['codec']))
 
         # Commit changes and close connection
         conn.commit()
