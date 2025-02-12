@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 
 # Define utility functions
@@ -63,6 +64,72 @@ def titlextract(filename):
     return title
 
 
+# Function to extract the year from a filename
+def yearextract(filename):
+    '''
+    yearextract.py is a module that provides a function for extracting the year of a file from its name.
+
+    The yearextract function takes a file name as an argument and returns the year of the file. 
+    The year is extracted by changing filenames with this format "Duck.Duck.Goose.2018.720p.BluRay.x264-[YTS.AM].mp4" to
+    "2018".
+    '''
+    # Remove file extension
+    filename = filenaming(filename)
+    filename = filename.split('.')[0:-1] # Remove file extension
+
+    # Extract year using regex
+    year = None
+    match = re.search(r'(19\d{2}|20\d{2})', '.'.join(filename))
+    if match:
+        year = match.group(0)
+
+    return year
+
+
+# Function to extract the resolution from a filename
+def resextract(filename):
+    '''
+    resolutionextract.py is a module that provides a function for extracting the resolution of a file from its name.
+
+    The resolutionextract function takes a file name as an argument and returns the resolution of the file. 
+    The resolution is extracted by changing filenames with this format "Duck.Duck.Goose.2018.720p.BluRay
+    .x264-[YTS.AM].mp4" to "720p".
+    '''
+    # Remove file extension
+    filename = filenaming(filename)
+    filename = filename.split('.')[0:-1] # Remove file extension
+
+    # Extract resolution using regex
+    resolution = None
+    match = re.search(r'(\d{3,4}p)', '.'.join(filename))
+    if match:
+        resolution = match.group(0)
+
+    return resolution
+
+
+# Function to extract the codec from a filename
+def codecextract(filename):
+    '''
+    codecextract.py is a module that provides a function for extracting the codec of a file from its name.
+
+    The codecextract function takes a file name as an argument and returns the codec of the file. 
+    The codec is extracted by changing filenames with this format "Duck.Duck.Goose.2018.720p.BluRay.x264-[YTS.AM].mp4" to
+    "x264".
+    '''
+    # Remove file extension
+    filename = filenaming(filename)
+    filename = filename.split('.')[0:-1] # Remove file extension
+
+    # Extract codec using regex
+    codec = None
+    match = re.search(r'x264|x265|XviD|DivX', '.'.join(filename))
+    if match:
+        codec = match.group(0)
+
+    return codec
+
+
 # Function to save data to a sqlite3 database
 def save(columns, values, table_title):
     """
@@ -76,18 +143,21 @@ def save(columns, values, table_title):
     :param table_title: Table title
     """
     
+    # Add 'id' column for autoincrement primary key
+    columns = ['id'] + columns
+    
     # Connect to database
     conn = sqlite3.connect('../classified.db')
     c = conn.cursor()
     
     # Create table if not exists
-    c.execute(f"CREATE TABLE IF NOT EXISTS {table_title} ({', '.join(columns)}, UNIQUE({', '.join(columns)}))")
+    c.execute(f"CREATE TABLE IF NOT EXISTS {table_title} (id INTEGER PRIMARY KEY AUTOINCREMENT, {', '.join(columns[1:])}, UNIQUE({', '.join(columns[1:])}))")
     
     # Insert values into table
     for value in values:
-        if len(value) != len(columns):
-            raise ValueError(f"Incorrect number of values supplied for columns {columns}. Expected {len(columns)}, got {len(value)}.")
-        query = f"INSERT OR IGNORE INTO {table_title} ({', '.join(columns)}) VALUES ({', '.join(['?']*len(columns))})"
+        if len(value) != len(columns) - 1:
+            raise ValueError(f"Incorrect number of values supplied for columns {columns[1:]}. Expected {len(columns) - 1}, got {len(value)}.")
+        query = f"INSERT OR IGNORE INTO {table_title} ({', '.join(columns[1:])}) VALUES ({', '.join(['?']*len(columns[1:]))})"
         print(f"Executing query: {query} with values: {value}")  # Debug print
         c.execute(query, value)
     

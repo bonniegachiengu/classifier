@@ -13,7 +13,7 @@ The PathFinder class is used by the Findex class in the findex module to find fi
 '''
 
 class PathFinder:
-    # Initialize PathFinder class
+    '''Initialize PathFinder class'''
     def __init__(self, filepath):
         # Initialize file attributes
         self.filepath = filepath # File path
