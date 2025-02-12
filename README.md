@@ -4,7 +4,7 @@
 
 ## Project Structure
 
-```graphql
+```plaintext
 classifier
 ├── findex
 │   ├── __init__.py
@@ -16,7 +16,11 @@ classifier
 │   ├── detailsextractor.py
 │   └── utils.py
 ├── crawler
+│   ├── __init__.py
+│   └── crawler.py
 ├── generator
-├── requirements.txt11
+│   ├── __init__.py
+│   └── generator.py
+├── requirements.txt
 └── README.md
 ```

@@ -1,7 +1,7 @@
 import os
-import sqlite3
+from pathextractor import pathextractor
 from titlextractor import titlextractor
-from utils import filenamer, pathextractor, save_to_db
+from utils import filenamer, save_to_db
 
 '''
 pathfinder.py is a module that provides a class for finding files in a directory tree.

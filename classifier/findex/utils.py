@@ -1,28 +1,14 @@
 import os
 import sqlite3
 
+# Define utility functions
+
+# Function to extract the filename from a path
 def filenamer(path):
     """Return the filename of a path."""
     return os.path.basename(path)
 
-def pathextractor(root, filename):
-    """
-    Extract the path of a file from its root and filename, or dir.
-    
-    The pathextractor function takes the root directory and filename of a file as arguments, 
-    and returns the full path of the file.
-    
-    :param root: Root directory
-    :param filename: Filename
-    :return: Full path of the file
-    """
-    
-    # get filename from filenamer function in utils module
-    filename = filenamer(filename)
-
-    # Return full path
-    return os.path.join(root, filename)
-
+# Function to save data to a sqlite3 database
 def save_to_db(columns, values, table_title):
     """
     Save data to a sqlite3 database.
