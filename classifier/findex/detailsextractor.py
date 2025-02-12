@@ -18,7 +18,6 @@ class DetailsExtractor:
         '''
         # Fetch filenames and file_ids from the database
         filepaths = fetch(columns=['id', 'filename'], table_title='filepaths')
-        print(f"Fetched filepaths: {filepaths}")
 
         # Extract details from filenames
         for filepath_tuple in filepaths: # Iterate over filepaths
@@ -29,7 +28,6 @@ class DetailsExtractor:
 
         # Save details to the database
         self.save_details()
-        print("Details saved to database")
 
     def extract_details(self, filename):
         '''
@@ -71,10 +69,3 @@ class DetailsExtractor:
         # Commit changes and close connection
         conn.commit()
         conn.close()
-
-
-# Initialize DetailsExtractor object
-details_extractor = DetailsExtractor()
-
-# Extract details from filenames and save to database
-details_extractor.extract()

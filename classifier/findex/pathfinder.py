@@ -60,17 +60,4 @@ class PathFinder:
         # Save to database
         for file in files:
             self.save(columns=['filepath', 'filename', 'filetitle'], values=[file], table_title='filepaths')
-
         return files
-
-
-# Prompt user to enter directory path and file extensions
-filepath = input('Enter directory path: ')
-extensions = tuple(input('Enter file extensions separated by commas: ').split(','))
-
-# Initialize PathFinder object
-pathfinder = PathFinder(filepath)
-
-# Find files in directory tree
-pathfinder.find(filepath, extensions)
-print('Files found and saved to database.')

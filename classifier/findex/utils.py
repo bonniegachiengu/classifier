@@ -158,7 +158,6 @@ def save(columns, values, table_title):
         if len(value) != len(columns) - 1:
             raise ValueError(f"Incorrect number of values supplied for columns {columns[1:]}. Expected {len(columns) - 1}, got {len(value)}.")
         query = f"INSERT OR IGNORE INTO {table_title} ({', '.join(columns[1:])}) VALUES ({', '.join(['?']*len(columns[1:]))})"
-        print(f"Executing query: {query} with values: {value}")  # Debug print
         c.execute(query, value)
     
     # Commit changes
@@ -166,7 +165,6 @@ def save(columns, values, table_title):
     
     # Close connection
     conn.close()
-    print(f"Data saved to table {table_title}")  # Debug print
 
 
 # Function to fetch data from a sqlite3 database

@@ -27,27 +27,23 @@ class StepExtractor:
         '''
         # Fetch file paths from the database
         filepaths = fetch(columns=['id', 'filepath'], table_title='filepaths')
-        print(f"Fetched filepaths: {filepaths}")  # Debug print
 
         # Build the dbal adjacency list
         for filepath_tuple in filepaths:
             filepath_id = filepath_tuple[0]
             filepath = filepath_tuple[1]
             steps = pathextract(filepath).split(os.path.sep)
-            print(f"Extracted steps for filepath {filepath}: {steps}")  # Debug print
             
             # Construct the dbal adjacency list from path segments
             for i in range(len(steps)-1):
                 parent = steps[i]
                 child = steps[i + 1]
-                print(f"Adding edge from {parent} to {child}")  # Debug print
                 self.edgify(parent, child)
 
             # Save the dbal adjacency list to the database (filesteps table)
             self.savesteps(filepath_id)
             self.dbal.clear()  # Clear the dbal for the next file
 
-        print("DBAL saved to database")  # Debug print
 
     def savesteps(self, filepath_id):
         """
@@ -74,7 +70,6 @@ class StepExtractor:
             for child in children:
                 query = "INSERT OR IGNORE INTO filesteps (filepath_id, parent, child) VALUES (?, ?, ?)"
                 values = (filepath_id, parent, child)
-                print(f"Executing query: {query} with values: {values}")  # Debug print
                 c.execute(query, values)
         
         # Commit changes
@@ -82,15 +77,3 @@ class StepExtractor:
         
         # Close connection
         conn.close()
-        print("Data saved to filesteps table")  # Debug print
-
-
-# Since we have database path set to '../classified.db', we can initialize the StepExtractor class
-# and extract the directory steps from the file paths in the filepaths table.
-
-# Initialize StepExtractor class
-stepextractor = StepExtractor()
-
-# Extract directory steps from file paths
-stepextractor.extract()
-# The directory steps are extracted from the file paths and saved to the filesteps table in the classified.db database.
