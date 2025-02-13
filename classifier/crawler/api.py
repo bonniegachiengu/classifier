@@ -1,6 +1,6 @@
-from utils import fetch
 import requests
-
+import sqlite3
+from utils import fetch
 
 '''
 API is a class used to get the data from the web using API. For instance from OMDb API for now.
@@ -50,14 +50,130 @@ class API:
         if response.status_code == 200:
             data = response.json()
             if data.get('Response') == 'True':
+                self.save(data) # Save data to database
+                print(f"Successfully saved movie details for {title} ({year})") # Print success message
                 return data # Return movie details
             else:
-                print(f"Movie not found: {title} ({year})")
+                # Print error message
+                print(f"Movie details not found for {title} ({year})")
         else:
-            print(f"Error: {response.status_code} Failed to fetch data for {title} ({year})")
+            # Print error message
+            print(f"Error: {response.status_code}: Failed to fetch movie details for {title} ({year})")
+        
+        return None
 
-        return None # Return None if failed to fetch data
-    
+
+    def save(self, data):
+        '''Save the retrieved movie metadata to the filemetadata table in classified.db'''
+
+        conn = sqlite3.connect(self.dbpath)
+        cursor = conn.cursor()
+
+        # Create filemetadata table if it does not exist
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS filemetadata (
+                imdbID TEXT PRIMARY KEY,
+                title TEXT,
+                year TEXT,
+                rated TEXT,
+                released TEXT,
+                runtime TEXT,
+                genre TEXT,
+                director TEXT,
+                writer TEXT,
+                actors TEXT,
+                plot TEXT,
+                language TEXT,
+                country TEXT,
+                awards TEXT,
+                poster TEXT,
+                metascore TEXT,
+                imdbRating TEXT,
+                imdbVotes TEXT,
+                type TEXT,
+                boxoffice TEXT
+            )
+        """)
+
+        # Create filemetadata table if not exists
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS filemetadata (
+                imdbID TEXT PRIMARY KEY,
+                title TEXT,
+                year TEXT,
+                rated TEXT,
+                released TEXT,
+                runtime TEXT,
+                genre TEXT,
+                director TEXT,
+                writer TEXT,
+                actors TEXT,
+                plot TEXT,
+                language TEXT,
+                country TEXT,
+                awards TEXT,
+                poster TEXT,
+                metascore TEXT,
+                imdbRating TEXT,
+                imdbVotes TEXT,
+                type TEXT,
+                boxoffice TEXT
+            )
+        """)
+
+        # Insert or update the metadata
+        cursor.execute("""
+            INSERT INTO filemetadata (
+                imdbID, title, year, rated, released, runtime, genre, director, 
+                writer, actors, plot, language, country, awards, poster, 
+                metascore, imdbRating, imdbVotes, type, boxoffice
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(imdbID) DO UPDATE SET
+                title = excluded.title,
+                year = excluded.year,
+                rated = excluded.rated,
+                released = excluded.released,
+                runtime = excluded.runtime,
+                genre = excluded.genre,
+                director = excluded.director,
+                writer = excluded.writer,
+                actors = excluded.actors,
+                plot = excluded.plot,
+                language = excluded.language,
+                country = excluded.country,
+                awards = excluded.awards,
+                poster = excluded.poster,
+                metascore = excluded.metascore,
+                imdbRating = excluded.imdbRating,
+                imdbVotes = excluded.imdbVotes,
+                type = excluded.type,
+                boxoffice = excluded.boxoffice
+        """, (
+            data.get("imdbID"),
+            data.get("Title"),
+            data.get("Year"),
+            data.get("Rated"),
+            data.get("Released"),
+            data.get("Runtime"),
+            data.get("Genre"),
+            data.get("Director"),
+            data.get("Writer"),
+            data.get("Actors"),
+            data.get("Plot"),
+            data.get("Language"),
+            data.get("Country"),
+            data.get("Awards"),
+            data.get("Poster"),
+            data.get("Metascore"),
+            data.get("imdbRating"),
+            data.get("imdbVotes"),
+            data.get("Type"),
+            data.get("BoxOffice")
+        ))
+
+        conn.commit()
+        conn.close()
+
 # Example usage
 if __name__ == '__main__':
     api = API("http://www.omdbapi.com/", "1787320b")
@@ -67,6 +183,15 @@ if __name__ == '__main__':
 
     # Search OMDb API for movie details
     for title, year in movies:
-        data = api.search(title, year)
-        if data:
-            print(data)
+        movie_details = api.search(title, year)
+        if movie_details:
+            print(movie_details)
+            break
+    else:
+
+        print("No movie details found")
+
+# Output
+# Successfully saved movie details for The Shawshank Redemption (1994)
+
+            
