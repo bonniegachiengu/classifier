@@ -2,77 +2,46 @@ import requests
 import sqlite3
 from utils import fetch
 
-'''
-API is a class used to get the data from the web using API. For instance from OMDb API for now.
-
-API will take the movie title and year from filedetails table in my classified.db database,
-search the OMDb API for the movie details such as cast, director, genre, plot, rating, and 
-most importantly the poster URL and in the filemetadata table in the classified.db database.
-
-API will have a collect title and year method from findex.utils.fetch to collect the movie title and year from the
-filedetails table in the classified.db database.
-
-API will have a search method to search the OMDb API for the movie details such as cast, 
-director, genre, plot, rating, and most importantly the poster URL.
-
-API will have a save method to save the movie details such as cast, director, genre, plot, 
-rating, and poster URL in the filemetadata table in the classified.db database.
-'''
-
 class API:
-    '''Initialize API class'''
     def __init__(self, url, apikey, dbpath='../classified.db'):
         self.url = url
         self.apikey = apikey
         self.dbpath = dbpath
 
     def collect(self):
-        '''Collect title and year from filedetails table in classified.db'''
-
-        # Fetch data from database
-        columns = ['title', 'year']
+        """Fetch file_id, title, and year from filedetails."""
+        columns = ['file_id', 'title', 'year']
         table_title = 'filedetails'
-        data = fetch(columns, table_title)
+        return fetch(columns, table_title)
 
-        return data
-    
-    def search(self, title, year):
-        '''Search OMDb API for the movie details'''
-        
-        # Define parameters
-        params = {
-            "t": title,
-            "y": year,
-            "apikey": self.apikey
-        }
+    def search(self, file_id, title, year):
+        """Search OMDb API for movie details."""
+        params = {"t": title, "y": year, "apikey": self.apikey}
         response = requests.get(self.url, params=params)
 
         if response.status_code == 200:
             data = response.json()
             if data.get('Response') == 'True':
-                self.save(data) # Save data to database
-                print(f"Successfully saved movie details for {title} ({year})") # Print success message
-                return data # Return movie details
+                self.save(file_id, data)  # Link metadata to file_id
+                print(f"Saved: {title} ({year})")
+                return data
             else:
-                # Print error message
-                print(f"Movie details not found for {title} ({year})")
+                print(f"Not Found: {title} ({year})")
         else:
-            # Print error message
-            print(f"Error: {response.status_code}: Failed to fetch movie details for {title} ({year})")
-        
+            print(f"Error {response.status_code}: {title} ({year})")
+
         return None
 
-
-    def save(self, data):
-        '''Save the retrieved movie metadata to the filemetadata table in classified.db'''
-
+    def save(self, file_id, data):
+        """Save metadata into filemetadata, linking with filedetails.file_id."""
         conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()
 
         # Create filemetadata table if it does not exist
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS filemetadata (
-                imdbID TEXT PRIMARY KEY,
+                file_id INTEGER PRIMARY KEY,  
+                imdbID TEXT UNIQUE,
                 title TEXT,
                 year TEXT,
                 rated TEXT,
@@ -87,48 +56,33 @@ class API:
                 country TEXT,
                 awards TEXT,
                 poster TEXT,
-                metascore TEXT,
                 imdbRating TEXT,
                 imdbVotes TEXT,
+                rottenTomatoes TEXT,
                 type TEXT,
-                boxoffice TEXT
+                boxoffice TEXT,
+                FOREIGN KEY (file_id) REFERENCES filedetails(file_id) ON DELETE CASCADE
             )
         """)
 
-        # Create filemetadata table if not exists
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS filemetadata (
-                imdbID TEXT PRIMARY KEY,
-                title TEXT,
-                year TEXT,
-                rated TEXT,
-                released TEXT,
-                runtime TEXT,
-                genre TEXT,
-                director TEXT,
-                writer TEXT,
-                actors TEXT,
-                plot TEXT,
-                language TEXT,
-                country TEXT,
-                awards TEXT,
-                poster TEXT,
-                metascore TEXT,
-                imdbRating TEXT,
-                imdbVotes TEXT,
-                type TEXT,
-                boxoffice TEXT
-            )
-        """)
+        # Extract IMDb and Rotten Tomatoes ratings
+        imdb_rating = None
+        rotten_tomatoes = None
+        for rating in data.get("Ratings", []):
+            if rating["Source"] == "Internet Movie Database":
+                imdb_rating = rating["Value"]
+            elif rating["Source"] == "Rotten Tomatoes":
+                rotten_tomatoes = rating["Value"]
 
-        # Insert or update the metadata
+        # Insert or update metadata
         cursor.execute("""
-            INSERT INTO filemetadata (
-                imdbID, title, year, rated, released, runtime, genre, director, 
-                writer, actors, plot, language, country, awards, poster, 
-                metascore, imdbRating, imdbVotes, type, boxoffice
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(imdbID) DO UPDATE SET
+            INSERT OR IGNORE INTO filemetadata (
+                file_id, imdbID, title, year, rated, released, runtime, genre, 
+                director, writer, actors, plot, language, country, awards, 
+                poster, imdbRating, imdbVotes, rottenTomatoes, type, boxoffice
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(file_id) DO UPDATE SET
+                imdbID = excluded.imdbID,
                 title = excluded.title,
                 year = excluded.year,
                 rated = excluded.rated,
@@ -143,55 +97,30 @@ class API:
                 country = excluded.country,
                 awards = excluded.awards,
                 poster = excluded.poster,
-                metascore = excluded.metascore,
                 imdbRating = excluded.imdbRating,
                 imdbVotes = excluded.imdbVotes,
+                rottenTomatoes = excluded.rottenTomatoes,
                 type = excluded.type,
                 boxoffice = excluded.boxoffice
         """, (
-            data.get("imdbID"),
-            data.get("Title"),
-            data.get("Year"),
-            data.get("Rated"),
-            data.get("Released"),
-            data.get("Runtime"),
-            data.get("Genre"),
-            data.get("Director"),
-            data.get("Writer"),
-            data.get("Actors"),
-            data.get("Plot"),
-            data.get("Language"),
-            data.get("Country"),
-            data.get("Awards"),
-            data.get("Poster"),
-            data.get("Metascore"),
-            data.get("imdbRating"),
-            data.get("imdbVotes"),
-            data.get("Type"),
-            data.get("BoxOffice")
+            file_id, data.get("imdbID"), data.get("Title"), data.get("Year"),
+            data.get("Rated"), data.get("Released"), data.get("Runtime"),
+            data.get("Genre"), data.get("Director"), data.get("Writer"),
+            data.get("Actors"), data.get("Plot"), data.get("Language"),
+            data.get("Country"), data.get("Awards"), data.get("Poster"),
+            imdb_rating, data.get("imdbVotes"), rotten_tomatoes,
+            data.get("Type"), data.get("BoxOffice")
         ))
 
         conn.commit()
         conn.close()
 
-# Example usage
 if __name__ == '__main__':
     api = API("http://www.omdbapi.com/", "1787320b")
 
-    # Collect title and year from database
+    # Collect all movies
     movies = api.collect()
 
-    # Search OMDb API for movie details
-    for title, year in movies:
-        movie_details = api.search(title, year)
-        if movie_details:
-            print(movie_details)
-            break
-    else:
-
-        print("No movie details found")
-
-# Output
-# Successfully saved movie details for The Shawshank Redemption (1994)
-
-            
+    # Fetch and save details for each movie
+    for file_id, title, year in movies:
+        api.search(file_id, title, year)
