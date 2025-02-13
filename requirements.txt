@@ -1,5 +1,6 @@
-setuptools
-sqlite3
-os
-pathlib
-pandas
+setuptools # package management
+os # operating system
+re # regex
+pathlib # file path
+pandas # data manipulation
+```

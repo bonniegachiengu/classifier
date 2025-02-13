@@ -1,5 +1,5 @@
-sqlite3
-os
-pathlib
-pandas
+os # operating system
+re # regex
+pathlib # file path
+pandas # data manipulation
 ```

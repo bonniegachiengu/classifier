@@ -1,21 +1,28 @@
-class Crawler:
-    def __init__(self, sources):
-        self.sources = sources
 
-    def fetch_movie_details(self, movie_id):
-        movie_data = {}
-        for source in self.sources:
-            data = self.connect_to_source(source, movie_id)
-            if data:
-                movie_data[source] = data
-        return movie_data
 
-    def connect_to_source(self, source, movie_id):
-        # Placeholder for actual database connection logic
-        # This method should connect to the specified source and fetch movie details
-        pass
+'''
+Crawler class is used to crawl the web and get the data from the web.
+It uses API and web scraping to get the data from the web.
 
-    def cross_verify_data(self, movie_data):
-        # Placeholder for logic to cross-verify data from multiple sources
-        # This method should compare and validate the fetched data
-        pass
+The Crawler class is composed of the API and WebScraper classes.
+
+The API class is used to get the data from the web using API. For instance from 
+OMDb API for now.
+
+The WebScraper class is used to get the data from the web using web scraping.
+For instance metadata from Wikipedia for now.
+
+The Crawler class provides a method for getting the data from the web using API and web scraping.
+'''
+
+# class Crawler:
+#     '''Initialize Crawler class'''
+#     def __init__(self, url, apikey):
+#         self.url = url
+#         self.apikey = apikey
+
+#     def run(self):
+#         '''Run the Crawler process'''
+
+#         # Get data from the web using API: API
+#         api = API(url=self.url, apikey=self.apikey)
