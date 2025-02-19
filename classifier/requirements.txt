@@ -3,4 +3,7 @@ os # operating system
 re # regex
 pathlib # file path
 pandas # data manipulation
-```
+networkx # graph
+matplotlib # plotting
+graphviz # graph visualization
+scipy # scientific computing

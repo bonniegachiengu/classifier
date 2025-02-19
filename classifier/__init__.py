@@ -4,5 +4,5 @@ It includes modules for metadata collection, file indexing, and content analysis
 """
 
 from .crawler import Crawler
-from .findex import Findex
+from .finder import Findex
 from .generator import Generator
