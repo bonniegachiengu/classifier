@@ -57,3 +57,6 @@ env/
 /classifier/classified.db
 /classifier/classified.db-journal
 /classifier/classifiedd.db
+
+# Ignore JSON files
+*.json

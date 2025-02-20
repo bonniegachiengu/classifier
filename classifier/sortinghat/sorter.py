@@ -2,6 +2,7 @@ import sqlite3
 import json
 from collections import defaultdict
 import re
+import logging
 
 class SortingHat:
     def __init__(self, DBPATH="../classified.db"):
@@ -59,17 +60,17 @@ class SortingHat:
         Analyzes DAG Structure after filtering unwanted categories and extracting genres to extract movies so that we remain with franchises
         """
         filtered_dag = self.filterDAG()
-        print("Filtered DAG:", filtered_dag)  # Debug statement
+        logging.info("Filtered DAG: %s", filtered_dag)  # Log statement
 
         new_genres = set()
 
         for parent, child in filtered_dag.items():
             if self.isMovie(parent, child):
                 self.classifications[child] = 'Movie'
-                print(f"Classified {child} as Movie")  # Debug statement
+                logging.info("Classified %s as Movie", child)  # Log statement
             elif self.isFranchise(parent, child):
                 self.classifications[parent] = 'Franchise'
-                print(f"Classified {parent} as Franchise")  # Debug statement
+                logging.info("Classified %s as Franchise", parent)  # Log statement
             else:
                 new_genres.add(parent)
 
@@ -95,17 +96,17 @@ class SortingHat:
         """Checks if all children are classified as movies."""
         for child in children:
             if not self.isMovie(child, []):
-                print(f"{parent} is not a franchise because {child} is not a movie")  # Debug statement
+                logging.info("%s is not a franchise because %s is not a movie", parent, child)  # Log statement
                 return False
-        print(f"{parent} is a franchise")  # Debug statement
+        logging.info("%s is a franchise", parent)  # Log statement
         return True
 
     def isMovie(self, parent, children):
         """Checks if a folder name has a year in it, i.e. in Hancock (2008)."""
         if re.search(r"\(\d{4}\)", parent):
-            print(f"{parent} is a movie")
+            logging.info("%s is a movie", parent)  # Log statement
             return True
-        print(f"{parent} is not a movie")
+        logging.info("%s is not a movie", parent)  # Log statement
         return False
         
 
@@ -123,7 +124,7 @@ class SortingHat:
             for folder, classification in self.classifications.items():
                 cursor.execute("INSERT OR REPLACE INTO classifications (folder, classification) VALUES (?, ?)", (folder, classification))
             conn.commit()
-        print("Classifications saved to database.")
+        logging.info("Classifications saved to database.")  # Log statement
 
     def classify(self):
         """Runs the full classification pipeline."""
@@ -132,6 +133,14 @@ class SortingHat:
         return self.classifications
 
 if __name__ == "__main__":
+    # Setup logging
+    logging.basicConfig(filename='sortinghat.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    
     sorter = SortingHat()
-    sorter.classify()
-    print(json.dumps(sorter.dag, indent=4))  # Print DAG JSON
+    classifications = sorter.classify()
+    
+    # Save DAG to a JSON file
+    with open('dag.json', 'w') as f:
+        json.dump(sorter.dag, f, indent=4)
+    
+    logging.info("DAG saved to dag.json")
