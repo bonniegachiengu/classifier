@@ -64,6 +64,7 @@ class SortingHat:
 
         new_genres = set()
 
+        # Classify parents
         for parent, children in filtered_dag.items():
             if self.isMovie(parent, children):
                 self.classifications[parent] = 'Movie'
@@ -73,6 +74,14 @@ class SortingHat:
                 logging.info("Classified %s as Franchise", parent)  # Log statement
             else:
                 new_genres.add(parent)
+
+        # Classify children
+        for parent, children in filtered_dag.items():
+            for child in children:
+                if child not in self.classifications:
+                    if self.isMovie(child, []):
+                        self.classifications[child] = 'Movie'
+                        logging.info("Classified %s as Movie", child)  # Log statement
 
         # Add new genres to the genre table
         with sqlite3.connect(self.dbpath) as conn:
