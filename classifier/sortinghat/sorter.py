@@ -64,11 +64,11 @@ class SortingHat:
 
         new_genres = set()
 
-        for parent, child in filtered_dag.items():
-            if self.isMovie(parent, child):
-                self.classifications[child] = 'Movie'
-                logging.info("Classified %s as Movie", child)  # Log statement
-            elif self.isFranchise(parent, child):
+        for parent, children in filtered_dag.items():
+            if self.isMovie(parent, children):
+                self.classifications[parent] = 'Movie'
+                logging.info("Classified %s as Movie", parent)  # Log statement
+            elif self.isFranchise(parent, children):
                 self.classifications[parent] = 'Franchise'
                 logging.info("Classified %s as Franchise", parent)  # Log statement
             else:
@@ -95,7 +95,7 @@ class SortingHat:
     def isFranchise(self, parent, children):
         """Checks if all children are classified as movies."""
         for child in children:
-            if not self.isMovie(child, []):
+            if not self.isMovie(child, self.dag.get(child, [])):
                 logging.info("%s is not a franchise because %s is not a movie", parent, child)  # Log statement
                 return False
         logging.info("%s is a franchise", parent)  # Log statement
@@ -110,8 +110,39 @@ class SortingHat:
         return False
         
 
+    def saveClasses(self):
+        """Saves classification results to the classes table."""
+        with sqlite3.connect(self.dbpath) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS classes (
+                    folder TEXT PRIMARY KEY, 
+                    classification TEXT,
+                    classes TEXT,
+                    levels TEXT,
+                    FOREIGN KEY (folder) REFERENCES filesteps(parent)
+                )
+            """)
+            for folder, classification in self.classifications.items():
+                if classification == 'Movie':
+                    classes = 'Film'
+                    levels = 'Release'
+                    logging.info("Saving %s as Movie with classes: %s and levels: %s", folder, classes, levels)  # Log statement
+                elif classification == 'Franchise':
+                    classes = 'Franchise'
+                    levels = 'Playlist'
+                    logging.info("Saving %s as Franchise with classes: %s and levels: %s", folder, classes, levels)  # Log statement
+                else:
+                    logging.info("Skipping %s with classification: %s", folder, classification)  # Log statement
+                    continue
+                cursor.execute("INSERT OR REPLACE INTO classes (folder, classification, classes, levels) VALUES (?, ?, ?, ?)", 
+                               (folder, classification, classes, levels))
+            conn.commit()
+        logging.info("Classes saved to database.")  # Log statement
+
     def saveResults(self):
         """Saves classification results to a new table in the database."""
+        logging.info("Classification results: %s", self.classifications)  # Log classification results
         with sqlite3.connect(self.dbpath) as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -122,9 +153,11 @@ class SortingHat:
                 )
             """)
             for folder, classification in self.classifications.items():
+                logging.info("Saving %s with classification: %s", folder, classification)  # Log statement
                 cursor.execute("INSERT OR REPLACE INTO classifications (folder, classification) VALUES (?, ?)", (folder, classification))
             conn.commit()
         logging.info("Classifications saved to database.")  # Log statement
+        self.saveClasses()  # Save to Classes table
 
     def classify(self):
         """Runs the full classification pipeline."""
@@ -144,3 +177,10 @@ if __name__ == "__main__":
         json.dump(sorter.dag, f, indent=4)
     
     logging.info("DAG saved to dag.json")
+    
+    # Verify database entries
+    with sqlite3.connect(sorter.dbpath) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM classifications")
+        rows = cursor.fetchall()
+        logging.info("Database entries in classifications table: %s", rows)
