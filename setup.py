@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='classifier',
+    name='Classifier',
     version='0.1.0',
     author='Bonnie Gachiengu',
     author_email='bonniegachiengu@gmail.com',

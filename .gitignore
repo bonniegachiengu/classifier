@@ -51,12 +51,13 @@ env/
 
 # Ignore SQLite3 database file
 *.sqlite3
-.db
-/*.db
-/*.sqlite
-/classifier/classified.db
-/classifier/classified.db-journal
-/classifier/classifiedd.db
+*.db
+*.db-journal
+# Ignore example files
+*example.py
 
-# Ignore JSON files
+# Ignore setup files
+*.egg-info/
+
+# JSON files
 *.json

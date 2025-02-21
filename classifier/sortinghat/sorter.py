@@ -2,10 +2,11 @@ import sqlite3
 import json
 from collections import defaultdict
 import re
-import logging
+from classifier.utils.logger import log_info
+from classifier.utils.config import DB_PATH, EXCLUDED_FOLDERS
 
 class SortingHat:
-    def __init__(self, DBPATH="../classified.db"):
+    def __init__(self, DBPATH=DB_PATH):
         self.dbpath = DBPATH
         self.dag = self.buildDAG()
         self.filemetadata = self.loadFileMetadata()
@@ -58,7 +59,7 @@ class SortingHat:
     def extractAncestryGenres(self, folder):
         """Extracts genres from ancestor folders."""
         genres = set()
-        to_remove = {"E:", "Films", "Media", "Series", "Movies"}  # Types to exclude
+        to_remove = EXCLUDED_FOLDERS  # Types to exclude
 
         def getAncestors(folder):
             ancestors = []
@@ -85,7 +86,7 @@ class SortingHat:
         Analyzes DAG Structure after filtering unwanted categories and extracting genres to extract movies so that we remain with franchises
         """
         filtered_dag = self.filterDAG()
-        logging.info("Filtered DAG: %s", filtered_dag)  # Log statement
+        log_info("Filtered DAG: %s", filtered_dag)  # Log statement
 
         new_genres = set()
 
@@ -93,10 +94,10 @@ class SortingHat:
         for parent, children in filtered_dag.items():
             if self.isMovie(parent, children):
                 self.classifications[parent] = 'Movie'
-                logging.info("Classified %s as Movie", parent)  # Log statement
+                log_info("Classified %s as Movie", parent)  # Log statement
             elif self.isFranchise(parent, children):
                 self.classifications[parent] = 'Franchise'
-                logging.info("Classified %s as Franchise", parent)  # Log statement
+                log_info("Classified %s as Franchise", parent)  # Log statement
             else:
                 new_genres.add(parent)
 
@@ -106,7 +107,7 @@ class SortingHat:
                 if child not in self.classifications:
                     if self.isMovie(child, []):
                         self.classifications[child] = 'Movie'
-                        logging.info("Classified %s as Movie", child)  # Log statement
+                        log_info("Classified %s as Movie", child)  # Log statement
 
         # Add new genres to the genre table
         with sqlite3.connect(self.dbpath) as conn:
@@ -158,23 +159,23 @@ class SortingHat:
             cursor.execute("SELECT name FROM genre")
             to_remove.update(row[0] for row in cursor.fetchall())  # Add genres to remove
         
-        return {k: v for k, v in self.dag.items() if k not in to_remove}
+        return {k: v for k, v in self.dag.items() if k not in to_remove} # Filter out unwanted categories
 
     def isFranchise(self, parent, children):
         """Checks if all children are classified as movies."""
         for child in children:
             if not self.isMovie(child, self.dag.get(child, [])):
-                logging.info("%s is not a franchise because %s is not a movie", parent, child)  # Log statement
+                log_info("%s is not a franchise because %s is not a movie", parent, child)  # Log statement
                 return False
-        logging.info("%s is a franchise", parent)  # Log statement
+        log_info("%s is a franchise", parent)  # Log statement
         return True
 
     def isMovie(self, parent, children):
         """Checks if a folder name has a year in it, i.e. in Hancock (2008)."""
         if re.search(r"\(\d{4}\)", parent):
-            logging.info("%s is a movie", parent)  # Log statement
+            log_info("%s is a movie", parent)  # Log statement
             return True
-        logging.info("%s is not a movie", parent)  # Log statement
+        log_info("%s is not a movie", parent)  # Log statement
         return False
         
 
@@ -197,23 +198,23 @@ class SortingHat:
                     classes = 'Film'
                     levels = 'Release'
                     genre = ', '.join(sorted(set(g.strip() for g in self.filemetadata[folder]['genre'].split(','))))  # Remove duplicates and strip whitespace
-                    logging.info("Saving %s as Movie with classes: %s, levels: %s, genre: %s", folder, classes, levels, genre)  # Log statement
+                    log_info("Saving %s as Movie with classes: %s, levels: %s, genre: %s", folder, classes, levels, genre)  # Log statement
                 elif type == 'Franchise':
                     classes = 'Franchise'
                     levels = 'Playlist'
                     genre = ', '.join(sorted(set(g.strip() for g in self.filemetadata[folder]['genre'].split(','))))  # Remove duplicates and strip whitespace
-                    logging.info("Saving %s as Franchise with classes: %s, levels: %s, genre: %s", folder, classes, levels, genre)  # Log statement
+                    log_info("Saving %s as Franchise with classes: %s, levels: %s, genre: %s", folder, classes, levels, genre)  # Log statement
                 else:
-                    logging.info("Skipping %s with classification: %s", folder, type)  # Log statement
+                    log_info("Skipping %s with classification: %s", folder, type)  # Log statement
                     continue
                 cursor.execute("INSERT OR REPLACE INTO classifications (folder, type, classes, levels, genre) VALUES (?, ?, ?, ?, ?)", 
                                (folder, type, classes, levels, genre))
             conn.commit()
-        logging.info("Classes saved to database.")  # Log statement
+        log_info("Classes saved to database.")  # Log statement
 
     def saveType(self):
         """Saves type to a new table in the database."""
-        logging.info("Type results: %s", self.classifications)  # Log classification results
+        log_info("Type results: %s", self.classifications)  # Log classification results
         with sqlite3.connect(self.dbpath) as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -224,10 +225,10 @@ class SortingHat:
                 )
             """)
             for folder, type in self.classifications.items():
-                logging.info("Saving %s with classification: %s", folder, type)  # Log statement
+                log_info("Saving %s with classification: %s", folder, type)  # Log statement
                 cursor.execute("INSERT OR REPLACE INTO type (folder, type) VALUES (?, ?)", (folder, type))
             conn.commit()
-        logging.info("Types saved to database.")  # Log statement
+        log_info("Types saved to database.")  # Log statement
         self.saveClassifications()  # Save to classifications table
 
     def classify(self):
@@ -238,7 +239,7 @@ class SortingHat:
 
 if __name__ == "__main__":
     # Setup logging
-    logging.basicConfig(filename='sortinghat.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    log_info("Starting SortingHat...")  # Log statement
     
     sorter = SortingHat()
     classifications = sorter.classify()
@@ -247,11 +248,11 @@ if __name__ == "__main__":
     with open('dag.json', 'w') as f:
         json.dump(sorter.dag, f, indent=4)
     
-    logging.info("DAG saved to dag.json")
+    log_info("DAG saved to dag.json")
     
     # Verify database entries
     with sqlite3.connect(sorter.dbpath) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM classifications")
         rows = cursor.fetchall()
-        logging.info("Database entries in classifications table: %s", rows)
+        log_info("Database entries in classifications table: %s", rows)
