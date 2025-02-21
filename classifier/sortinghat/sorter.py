@@ -55,6 +55,29 @@ class SortingHat:
         
         return genres, studios
 
+    def extractAncestryGenres(self, folder):
+        """Extracts genres from ancestor folders."""
+        genres = set()
+        to_remove = {"E:", "Films", "Media", "Series", "Movies"}  # Types to exclude
+
+        def getAncestors(folder):
+            ancestors = []
+            with sqlite3.connect(self.dbpath) as conn:
+                cursor = conn.cursor()
+                while folder:
+                    cursor.execute("SELECT parent FROM filesteps WHERE child = ?", (folder,))
+                    result = cursor.fetchone()
+                    if result and result[0] not in to_remove:
+                        ancestors.append(result[0])
+                        folder = result[0]
+                    else:
+                        break
+            return ancestors
+
+        ancestors = getAncestors(folder)
+        genres.update(ancestor for ancestor in ancestors if ancestor not in to_remove)
+        return genres
+
     def analyzeStructure(self, genres, studios):
         """
         Analyzes DAG Structure after filtering unwanted categories and extracting genres to extract movies so that we remain with franchises
@@ -91,6 +114,40 @@ class SortingHat:
                     cursor.execute("INSERT OR IGNORE INTO genre (name) VALUES (?)", (genre,))
             conn.commit()
 
+        # Extract and store genres for each classified folder
+        for folder in self.classifications:
+            if self.classifications[folder] == 'Movie':
+                ancestry_genres = self.extractAncestryGenres(folder)
+                cursor.execute("SELECT filepath_id FROM filesteps WHERE child = ?", (folder,))
+                filepath_id_result = cursor.fetchone()
+                if filepath_id_result:
+                    filepath_id = filepath_id_result[0]
+                    cursor.execute("SELECT filetitle FROM filepaths WHERE id = ?", (filepath_id,))
+                    filetitle = cursor.fetchone()
+                    if filetitle:
+                        cursor.execute("SELECT genre FROM filemetadata WHERE title = ?", (filetitle[0],))
+                        result = cursor.fetchone()
+                        if result:
+                            file_genres = set(result[0].split(','))
+                            ancestry_genres.update(file_genres)
+                            self.filemetadata[folder] = {'genre': ', '.join(ancestry_genres)}
+            elif self.classifications[folder] == 'Franchise':
+                franchise_genres = set()
+                for child in filtered_dag.get(folder, []):
+                    if self.classifications.get(child) == 'Movie':
+                        cursor.execute("SELECT filepath_id FROM filesteps WHERE child = ?", (child,))
+                        filepath_id_result = cursor.fetchone()
+                        if filepath_id_result:
+                            filepath_id = filepath_id_result[0]
+                            cursor.execute("SELECT filetitle FROM filepaths WHERE id = ?", (filepath_id,))
+                            filetitle = cursor.fetchone()
+                            if filetitle:
+                                cursor.execute("SELECT genre FROM filemetadata WHERE title = ?", (filetitle[0],))
+                                result = cursor.fetchone()
+                            if result:
+                                franchise_genres.update(result[0].split(','))
+                self.filemetadata[folder] = {'genre': ', '.join(franchise_genres)}
+
     def filterDAG(self):
         """Removes unwanted categories like root folders, types, genres, and studios."""
         to_remove = {"E:", "Films", "Media", "Series", "Movies"}  # Types
@@ -119,59 +176,62 @@ class SortingHat:
         return False
         
 
-    def saveClasses(self):
-        """Saves classification results to the classes table."""
-        with sqlite3.connect(self.dbpath) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS classes (
-                    folder TEXT PRIMARY KEY, 
-                    classification TEXT,
-                    classes TEXT,
-                    levels TEXT,
-                    FOREIGN KEY (folder) REFERENCES filesteps(parent)
-                )
-            """)
-            for folder, classification in self.classifications.items():
-                if classification == 'Movie':
-                    classes = 'Film'
-                    levels = 'Release'
-                    logging.info("Saving %s as Movie with classes: %s and levels: %s", folder, classes, levels)  # Log statement
-                elif classification == 'Franchise':
-                    classes = 'Franchise'
-                    levels = 'Playlist'
-                    logging.info("Saving %s as Franchise with classes: %s and levels: %s", folder, classes, levels)  # Log statement
-                else:
-                    logging.info("Skipping %s with classification: %s", folder, classification)  # Log statement
-                    continue
-                cursor.execute("INSERT OR REPLACE INTO classes (folder, classification, classes, levels) VALUES (?, ?, ?, ?)", 
-                               (folder, classification, classes, levels))
-            conn.commit()
-        logging.info("Classes saved to database.")  # Log statement
-
-    def saveResults(self):
-        """Saves classification results to a new table in the database."""
-        logging.info("Classification results: %s", self.classifications)  # Log classification results
+    def saveClassifications(self):
+        """Saves classification results to the classifications table."""
         with sqlite3.connect(self.dbpath) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS classifications (
                     folder TEXT PRIMARY KEY, 
-                    classification TEXT,
+                    type TEXT,
+                    classes TEXT,
+                    levels TEXT,
+                    genre TEXT,
                     FOREIGN KEY (folder) REFERENCES filesteps(parent)
                 )
             """)
-            for folder, classification in self.classifications.items():
-                logging.info("Saving %s with classification: %s", folder, classification)  # Log statement
-                cursor.execute("INSERT OR REPLACE INTO classifications (folder, classification) VALUES (?, ?)", (folder, classification))
+            for folder, type in self.classifications.items():
+                if type == 'Movie':
+                    classes = 'Film'
+                    levels = 'Release'
+                    genre = self.filemetadata[folder]['genre']
+                    logging.info("Saving %s as Movie with classes: %s, levels: %s, genre: %s", folder, classes, levels, genre)  # Log statement
+                elif type == 'Franchise':
+                    classes = 'Franchise'
+                    levels = 'Playlist'
+                    genre = self.filemetadata[folder]['genre']
+                    logging.info("Saving %s as Franchise with classes: %s, levels: %s, genre: %s", folder, classes, levels, genre)  # Log statement
+                else:
+                    logging.info("Skipping %s with classification: %s", folder, type)  # Log statement
+                    continue
+                cursor.execute("INSERT OR REPLACE INTO classifications (folder, type, classes, levels, genre) VALUES (?, ?, ?, ?, ?)", 
+                               (folder, type, classes, levels, genre))
             conn.commit()
-        logging.info("Classifications saved to database.")  # Log statement
-        self.saveClasses()  # Save to Classes table
+        logging.info("Classes saved to database.")  # Log statement
+
+    def saveType(self):
+        """Saves type to a new table in the database."""
+        logging.info("Type results: %s", self.classifications)  # Log classification results
+        with sqlite3.connect(self.dbpath) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS type (
+                    folder TEXT PRIMARY KEY, 
+                    type TEXT,
+                    FOREIGN KEY (folder) REFERENCES filesteps(parent)
+                )
+            """)
+            for folder, type in self.classifications.items():
+                logging.info("Saving %s with classification: %s", folder, type)  # Log statement
+                cursor.execute("INSERT OR REPLACE INTO type (folder, type) VALUES (?, ?)", (folder, type))
+            conn.commit()
+        logging.info("Types saved to database.")  # Log statement
+        self.saveClassifications()  # Save to classifications table
 
     def classify(self):
         """Runs the full classification pipeline."""
         self.analyzeStructure(self.genres, self.studios)
-        self.saveResults()
+        self.saveType()
         return self.classifications
 
 if __name__ == "__main__":
