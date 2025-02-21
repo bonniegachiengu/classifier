@@ -75,7 +75,9 @@ class SortingHat:
             return ancestors
 
         ancestors = getAncestors(folder)
-        genres.update(ancestor for ancestor in ancestors if ancestor not in to_remove)
+        for ancestor in ancestors:
+            if ancestor not in to_remove and self.classifications.get(ancestor) != 'Franchise':
+                genres.add(ancestor)
         return genres
 
     def analyzeStructure(self, genres, studios):
