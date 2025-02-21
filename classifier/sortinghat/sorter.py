@@ -196,12 +196,12 @@ class SortingHat:
                 if type == 'Movie':
                     classes = 'Film'
                     levels = 'Release'
-                    genre = self.filemetadata[folder]['genre']
+                    genre = ', '.join(sorted(set(g.strip() for g in self.filemetadata[folder]['genre'].split(','))))  # Remove duplicates and strip whitespace
                     logging.info("Saving %s as Movie with classes: %s, levels: %s, genre: %s", folder, classes, levels, genre)  # Log statement
                 elif type == 'Franchise':
                     classes = 'Franchise'
                     levels = 'Playlist'
-                    genre = self.filemetadata[folder]['genre']
+                    genre = ', '.join(sorted(set(g.strip() for g in self.filemetadata[folder]['genre'].split(','))))  # Remove duplicates and strip whitespace
                     logging.info("Saving %s as Franchise with classes: %s, levels: %s, genre: %s", folder, classes, levels, genre)  # Log statement
                 else:
                     logging.info("Skipping %s with classification: %s", folder, type)  # Log statement
