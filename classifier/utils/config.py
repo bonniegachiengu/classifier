@@ -10,7 +10,7 @@ EXCLUDED_FOLDERS = {"E:", "Films", "Media", "Series", "Movies"}
 # Logging settings (can be toggled)
 DEBUG_MODE = True
 
-# Metadata merging field mappings (for Merger)
+# Metadata merging fields (used in MetAssembly)
 METADATA_FIELDS = [
     "title", "year", "genre", "type", "runtime",
     "language", "country", "imdbID", "imdbRating"

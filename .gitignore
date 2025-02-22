@@ -61,3 +61,6 @@ env/
 
 # JSON files
 *.json
+
+# ignore run.py
+run.py

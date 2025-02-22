@@ -1,20 +1,26 @@
 import logging
-from .config import DEBUG_MODE
 
-# Configure logging
+# Configure logging to log to a file
 logging.basicConfig(
-    level=logging.DEBUG if DEBUG_MODE else logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("c:/Users/DELL/OneDrive/Documents/Projects/Packages/Classifier/classifier/classified.log"),
+        logging.StreamHandler()
+    ]
 )
 
+# Create a logger instance
+logger = logging.getLogger(__name__)
+
 def log_info(message, *args):
-    logging.info(message, *args)
+    logger.info(message, *args)
 
 def log_debug(message, *args):
-    logging.debug(message, *args)
+    logger.debug(message, *args)
 
 def log_warning(message, *args):
-    logging.warning(message, *args)
+    logger.warning(message, *args)
 
 def log_error(message, *args):
-    logging.error(message, *args)
+    logger.error(message, *args)
