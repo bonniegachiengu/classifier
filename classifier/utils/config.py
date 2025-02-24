@@ -16,3 +16,4 @@ METADATA_FIELDS = [
     "language", "country", "imdbID", "imdbRating"
 ]
 
+RATING_ORDER = ['G', 'PG', 'TV-PG', 'PG-13', 'R', 'NC']

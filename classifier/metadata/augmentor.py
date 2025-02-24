@@ -1,5 +1,5 @@
-
 from classifier.sortinghat import SortingHat
+
 class MetAugment:
     def __init__(self):
         SortingHat.buildDAG()

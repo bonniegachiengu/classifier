@@ -165,7 +165,7 @@ class SortingHat:
                         self.classifications[child] = 'Movie'
                         log_info("Classified %s as Movie", child)  # Log statement
 
-        # Add new genres to the genre table
+    # Add new genres to the genre table
         with sqlite3.connect(self.dbpath) as conn:
             cursor = conn.cursor()
             for genre in new_genres:
@@ -173,7 +173,7 @@ class SortingHat:
                     cursor.execute("INSERT OR IGNORE INTO genre (name) VALUES (?)", (genre,))
             conn.commit()
 
-        # Extract and store genres for each classified folder
+    # Extract and store genres for each classified folder
         for folder in self.classifications:
             if self.classifications[folder] == 'Movie':
                 ancestry_genres = self.extractAncestryGenres(folder)
@@ -272,11 +272,13 @@ class SortingHat:
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS classifications (
+                    file_id INTEGER,
                     folder TEXT PRIMARY KEY, 
                     type TEXT,
                     classes TEXT,
                     levels TEXT,
                     genre TEXT,
+                    FOREIGN KEY (file_id) REFERENCES filesteps(filepath_id),
                     FOREIGN KEY (folder) REFERENCES filesteps(parent)
                 )
             """)
@@ -294,8 +296,14 @@ class SortingHat:
                 else:
                     log_info("Skipping %s with classification: %s", folder, type)  # Log statement
                     continue
-                cursor.execute("INSERT OR REPLACE INTO classifications (folder, type, classes, levels, genre) VALUES (?, ?, ?, ?, ?)", 
-                               (folder, type, classes, levels, genre))
+                
+                # Fetch the file_id from the filesteps table
+                cursor.execute("SELECT filepath_id FROM filesteps WHERE parent = ? OR child = ?", (folder, folder))
+                file_id_result = cursor.fetchone()
+                file_id = file_id_result[0] if file_id_result else None
+                
+                cursor.execute("INSERT OR REPLACE INTO classifications (file_id, folder, type, classes, levels, genre) VALUES (?, ?, ?, ?, ?, ?)", 
+                               (file_id, folder, type, classes, levels, genre))
             conn.commit()
         log_info("Classes saved to database.")  # Log statement
 
