@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime
 from classifier.utils.config import DB_PATH, RATING_ORDER
 from classifier.utils.logger import log_info, log_error, log_debug, log_warning
-from .augmentor import MetAugment
+from .gpt4all import generate_plot, generate_awards
 
 class MetAssembly:
     def __init__(self):
@@ -95,10 +95,10 @@ class MetAssembly:
             directors_club = self.joinChildDirectors(franchiseRecord)
             writers_club = self.joinChildWriters(franchiseRecord)
             fran_cast = self.joinChildCast(franchiseRecord)
-            augmented_plot = MetAugment.plotGPT(franchiseRecord)
+            augmented_plot = generate_plot(franchiseRecord)
             babel_tower = self.joinChildLanguages(franchiseRecord)
             fran_continent = self.joinChildCountries(franchiseRecord)
-            augmented_awards = MetAugment.awardsGPT(franchiseRecord)
+            augmented_awards = generate_awards(franchiseRecord)
             latest_poster = self.latestPoster(franchiseRecord)
             mean_imdb = self.meanChildIMDBRating(franchiseRecord)
             total_imdb = self.sumChildIMDBVotes(franchiseRecord)
@@ -263,8 +263,15 @@ class MetAssembly:
                 log_info("No release dates found for franchise: {}".format(franchiseRecord['classifications']['folder']))
                 return None
             
+            # Filter out invalid dates
+            valid_release_dates = [date for date in release_dates if date != 'N/A']
+            
+            if not valid_release_dates:
+                log_info("No valid release dates found for franchise: {}".format(franchiseRecord['classifications']['folder']))
+                return None
+
             # Convert release dates to datetime objects and find the earliest date
-            release_dates = [datetime.strptime(date, "%d %b %Y") for date in release_dates]
+            release_dates = [datetime.strptime(date, "%d %b %Y") for date in valid_release_dates]
             earliest_release = min(release_dates).strftime("%d %b %Y")
 
             log_info("Earliest release for franchise {} are: {}".format(franchiseRecord['classifications']['folder'], earliest_release))
@@ -292,7 +299,7 @@ class MetAssembly:
                 WHERE filesteps.parent = ?
             """, (franchiseRecord['classifications']['folder'],))
 
-            runtimes = [int(row[0].split()[0]) for row in cursor.fetchall() if row[0]]
+            runtimes = [int(row[0].split()[0]) for row in cursor.fetchall() if row[0] and row[0] != 'N/A']
 
             if not runtimes:
                 log_info("No runtimes found for franchise: {}".format(franchiseRecord['classifications']['folder']))
@@ -511,7 +518,7 @@ class MetAssembly:
                 WHERE filesteps.parent = ?
             """, (franchiseRecord['classifications']['folder'],))
 
-            posters = [(row[0], datetime.strptime(row[1], "%d %b %Y")) for row in cursor.fetchall() if row[1]]
+            posters = [(row[0], datetime.strptime(row[1], "%d %b %Y")) for row in cursor.fetchall() if row[1] and row[1] != 'N/A']
 
             if not posters:
                 log_info("No poster found for franchise: {}".format(franchiseRecord['classifications']['folder']))
